@@ -253,7 +253,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
           "iam:GetPolicy", "iam:GetPolicyVersion", "iam:CreatePolicy",
           "iam:DeletePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
-          "iam:ListPolicyVersions", "iam:TagRole", "iam:TagPolicy", "iam:GetOpenIDConnectProvider"
+          "iam:ListPolicyVersions", "iam:TagRole", "iam:TagPolicy"
         ]
         # Scoped to ONLY this project's ECS task roles/policies. Cannot touch
         # the deploy role or plan role themselves (no self-modification path),
@@ -261,8 +261,26 @@ resource "aws_iam_policy" "github_deploy_policy" {
         # the privilege-escalation hole the un-scoped role/* + policy/* grant had.
         Resource = [
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ecs-*",
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-ecs-*",
-          "arn:aws:iam::767397659229:oidc-provider/token.actions.githubusercontent.com"
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-ecs-*"
+        ]
+      },
+      {
+        Sid    = "IamSelfReadOnly"
+        Effect = "Allow"
+        # Terraform needs to READ its own role/policy/provider to run
+        # `plan`/`refresh` in this same root — but write access to these
+        # three resources is deliberately excluded from IamForProjectRolesOnly
+        # above. Read-only self-inspection, no write path onto itself.
+        Action = [
+          "iam:GetRole", "iam:GetPolicy", "iam:GetPolicyVersion",
+          "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+          "iam:ListInstanceProfilesForRole", "iam:ListPolicyVersions",
+          "iam:GetOpenIDConnectProvider"
+        ]
+        Resource = [
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-github-deploy-role",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-github-deploy-policy",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
         ]
       },
       {
