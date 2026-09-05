@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'app/**'
-      - '.github/workflows/ci-ecr.yml'
+      - '.github/workflows/ci-pulse-ecr.yml'
 
 env:
   AWS_REGION: us-east-1
