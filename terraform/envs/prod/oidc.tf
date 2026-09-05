@@ -253,7 +253,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
           "iam:GetPolicy", "iam:GetPolicyVersion", "iam:CreatePolicy",
           "iam:DeletePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
-          "iam:ListPolicyVersions", "iam:TagRole", "iam:TagPolicy"
+          "iam:ListPolicyVersions", "iam:TagRole", "iam:TagPolicy", "iam:GetOpenIDConnectProvider"
         ]
         # Scoped to ONLY this project's ECS task roles/policies. Cannot touch
         # the deploy role or plan role themselves (no self-modification path),
@@ -261,7 +261,8 @@ resource "aws_iam_policy" "github_deploy_policy" {
         # the privilege-escalation hole the un-scoped role/* + policy/* grant had.
         Resource = [
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ecs-*",
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-ecs-*"
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-ecs-*",
+          "arn:aws:iam::767397659229:oidc-provider/token.actions.githubusercontent.com"
         ]
       },
       {
