@@ -300,7 +300,7 @@ module "iam_iam-github-oidc-role" {
   subjects = [
     "${local.repo_subject_prefix}:ref:refs/heads/main",
     "${local.repo_subject_prefix}:pull_request"
-    ]
+  ]
   #   subjects = [
   #     "repo:susu10-10@${var.owner_id}/pulse-ecs-repo@${var.repo_id}:ref:refs/heads/main",
   #   ]
