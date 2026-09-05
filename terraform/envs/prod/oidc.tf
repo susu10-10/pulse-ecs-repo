@@ -265,6 +265,25 @@ resource "aws_iam_policy" "github_deploy_policy" {
         ]
       },
       {
+        Sid    = "IamSelfReadOnly"
+        Effect = "Allow"
+        # Terraform needs to READ its own role/policy/provider to run
+        # `plan`/`refresh` in this same root — but write access to these
+        # three resources is deliberately excluded from IamForProjectRolesOnly
+        # above. Read-only self-inspection, no write path onto itself.
+        Action = [
+          "iam:GetRole", "iam:GetPolicy", "iam:GetPolicyVersion",
+          "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+          "iam:ListInstanceProfilesForRole", "iam:ListPolicyVersions",
+          "iam:GetOpenIDConnectProvider"
+        ]
+        Resource = [
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-github-deploy-role",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-github-deploy-policy",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+        ]
+      },
+      {
         Sid    = "StateBucket"
         Effect = "Allow"
         Action = ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
@@ -300,7 +319,7 @@ module "iam_iam-github-oidc-role" {
   subjects = [
     "${local.repo_subject_prefix}:ref:refs/heads/main",
     "${local.repo_subject_prefix}:pull_request"
-    ]
+  ]
   #   subjects = [
   #     "repo:susu10-10@${var.owner_id}/pulse-ecs-repo@${var.repo_id}:ref:refs/heads/main",
   #   ]
