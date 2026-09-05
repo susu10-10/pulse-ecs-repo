@@ -3,10 +3,10 @@ name: PR Validation
 on:
   pull_request:
     branches: [ main ]
-    paths:
-      - 'app/**'
-      - 'github/workflows/**'
-      - 'terraform/**'
+    # paths:
+    #   - 'app/**'
+    #   - '.github/workflows/**'
+    #   - 'terraform/**'
 
 permissions:
   id-token: write   # required for AWS OIDC authentication
