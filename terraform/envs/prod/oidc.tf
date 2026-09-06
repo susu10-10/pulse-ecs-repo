@@ -14,145 +14,6 @@ locals {
 }
 
 
-# resource "aws_iam_policy" "github_deploy_policy" {
-#   name        = "${var.project_name}-github-deploy-policy"
-#   description = "Permissions for GitHub Actions to plan and apply the full online-boutique stack"
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         # 1. (ACM, Route53)
-#         Effect = "Allow"
-#         Action = [
-#           "acm:DescribeCertificate",
-#           "acm:ListCertificates",
-#           "acm:ListTagsForCertificate",
-#           "route53:GetHostedZone",
-#           "route53:ListHostedZones",
-#           "route53:ChangeResourceRecordSets",
-#           "route53:ListResourceRecordSets",
-#           "route53:GetChange"
-#         ]
-#         Resource = [
-#           "arn:aws:acm:us-east-1:767397659229:certificate/*",
-#           "arn:aws:route53:::hostedzone/*",
-#           "arn:aws:route53:::change/*"
-#         ]
-#       },
-#         {
-#         Effect   = "Allow"
-#         Action   = ["ecr:GetAuthorizationToken"]
-#         Resource = "*"
-#       },
-#       {
-#         Effect = "Allow"
-#         Action = [
-#           "ecr:BatchCheckLayerAvailability",
-#           "ecr:PutImage",
-#           "ecr:InitiateLayerUpload",
-#           "ecr:UploadLayerPart",
-#           "ecr:CompleteLayerUpload",
-#           "ecr:BatchGetImage"
-#         ]
-#         Resource = "arn:aws:ecr:${var.aws_region}:*:repository/*"
-#       },
-#       {
-#         Effect = "Allow"
-#         Action = [
-#           "ecs:UpdateService",
-#           "ecs:DescribeServices",
-#           "ecs:DescribeTaskDefinition",
-#           "ecs:RegisterTaskDefinition"
-#         ]
-#         Resource = "*"
-#       },
-#       {
-#         Effect   = "Allow"
-#         Action   = ["iam:PassRole"]
-#         Resource = [aws_iam_role.ecs_task_execution_role.arn, aws_iam_role.ecs_task_role.arn]
-#       },
-#       {
-#         # 2. Compute, Network & Routing (ECS, EC2, ELB, Servicediscovery, Autoscaling)
-#         Effect = "Allow"
-#         Action = [
-#         #   "ecs:*",
-#         #   "ec2:*",
-#           "elasticloadbalancing:*",
-#           "servicediscovery:*",
-#           "application-autoscaling:*"
-#         ]
-#         Resource = "*"
-#       },
-#     #   {
-#     #     # 3. Serverless Bridge & Cryptographic Vault (SQS, SNS, Lambda, SSM, ECR)
-#     #     Effect = "Allow"
-#     #     Action = [
-#     #       "ecr:*"
-#     #     ]
-#     #     Resource = [
-#     #       "arn:aws:ssm:us-east-1:767397659229:parameter/online-boutique/*",
-#     #       "arn:aws:ecr:us-east-1:767397659229:repository/*"
-#     #     ]
-#     #   },
-#       {
-#         # 4. Observability (CloudWatch Logs)
-#         Effect = "Allow"
-#         Action = [
-#           "logs:CreateLogGroup",
-#           "logs:DescribeLogGroups",
-#           "logs:ListTagsLogGroup",
-#           "logs:DeleteLogGroup",
-#           "logs:PutRetentionPolicy"
-#         ]
-#         Resource = "arn:aws:logs:us-east-1:767397659229:log-group:*"
-#       },
-#       {
-#         # 5. IAM Automation 
-#         Effect = "Allow"
-#         Action = [
-#           "iam:GetRole", "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
-#           "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:AttachRolePolicy",
-#           "iam:DetachRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
-#           "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
-#           "iam:PassRole", "iam:GetPolicy", "iam:GetPolicyVersion", "iam:CreatePolicy",
-#           "iam:DeletePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
-#           "iam:ListPolicyVersions", "iam:GetOpenIDConnectProvider"
-#         ]
-#         Resource = [
-#           "arn:aws:iam::767397659229:role/*",
-#           "arn:aws:iam::767397659229:policy/*",
-#           "arn:aws:iam::767397659229:oidc-provider/token.actions.githubusercontent.com"
-#         ]
-#       },
-#       {
-#         # 6. Terraform State Management
-#         Effect = "Allow"
-#         Action = [
-#           "s3:ListBucket",
-#           "s3:GetObject",
-#           "s3:PutObject",
-#           "s3:DeleteObject",
-#         ]
-#         Resource = [
-#           "arn:aws:s3:::pulse-ecs-tfstate-767397659229",
-#           "arn:aws:s3:::pulse-ecs-tfstate-767397659229/*"
-#         ]
-#       },
-#       {
-#         # 7. Terraform Metadata & Auditing Exception (AWS APIs that require wildcard resources)
-#         Effect = "Allow"
-#         Action = [
-#           "ssm:DescribeParameters",
-#           "route53:ListTagsForResource",
-#           "logs:ListTagsForResource",
-#         ]
-#         Resource = "*"
-#       }
-#     ]
-#   })
-# }
-
-
 resource "aws_iam_policy" "github_deploy_policy" {
   name        = "${var.project_name}-github-deploy-policy"
   description = "Permissions for GitHub Actions to apply the ${var.project_name} stack. main branch only."
@@ -164,7 +25,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Sid      = "EcrAuth"
         Effect   = "Allow"
         Action   = ["ecr:GetAuthorizationToken"]
-        Resource = "*" # AWS requires Resource "*" for this specific action — no scoping possible.
+        Resource = "*" 
       },
       {
         Sid    = "EcrPushPull"
@@ -198,13 +59,11 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "EcsClusterAndTaskDef"
         Effect = "Allow"
-        # ECS cluster/task-def APIs do not support resource-level scoping —
-        # documented AWS limitation, not an oversight. Actions enumerated
-        # explicitly instead of "ecs:*" to keep the surface as small as possible.
+
         Action = [
           "ecs:CreateCluster", "ecs:DeleteCluster", "ecs:DescribeClusters", "ecs:TagResource",
           "ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:DeregisterTaskDefinition",
-          "ecs:PutClusterCapacityProviders "
+          "ecs:PutClusterCapacityProviders"
         ]
         Resource = "*"
       },
@@ -220,9 +79,6 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "NetworkAndLoadBalancing"
         Effect = "Allow"
-        # EC2/ELB networking create+describe calls don't support resource-level
-        # IAM conditions — scoped by enumerating exact actions used instead of
-        # "ec2:*" / "elasticloadbalancing:*".
         Action = [
           "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:DescribeVpcs", "ec2:ModifyVpcAttribute", "ec2:DescribeVpcAttribute",
           "ec2:CreateSubnet", "ec2:DeleteSubnet", "ec2:DescribeSubnets",
@@ -264,11 +120,6 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "LogsDescribeUnscoped"
         Effect = "Allow"
-        # FIXED: logs:DescribeLogGroups is a search/list action — like
-        # route53:ListHostedZones, it structurally cannot be scoped to a
-        # specific log-group ARN. AWS requires Resource "*" for this one
-        # specific action, even though CreateLogGroup/DeleteLogGroup/etc.
-        # (above) support scoping just fine.
         Action   = ["logs:DescribeLogGroups"]
         Resource = "*"
       },
@@ -284,10 +135,6 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "iam:DeletePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicyVersion",
           "iam:ListPolicyVersions", "iam:TagRole", "iam:TagPolicy"
         ]
-        # Scoped to ONLY this project's ECS task roles/policies. Cannot touch
-        # the deploy role or plan role themselves (no self-modification path),
-        # and cannot touch any other role in the account. This is what closes
-        # the privilege-escalation hole the un-scoped role/* + policy/* grant had.
         Resource = [
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ecs-*",
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-ecs-*"
@@ -296,10 +143,6 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "IamSelfReadOnly"
         Effect = "Allow"
-        # Terraform needs to READ its own role/policy/provider to run
-        # `plan`/`refresh` in this same root — but write access to these
-        # three resources is deliberately excluded from IamForProjectRolesOnly
-        # above. Read-only self-inspection, no write path onto itself.
         Action = [
           "iam:GetRole", "iam:GetPolicy", "iam:GetPolicyVersion",
           "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
@@ -325,9 +168,6 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Sid    = "AcmManage"
         Effect = "Allow"
         Action = [
-          # Swapped RequestCertificate -> ImportCertificate: no longer
-          # requesting a DNS-validated cert, importing a self-signed one
-          # instead (see 06_acm.tf) — removes the Route53 dependency entirely.
           "acm:ImportCertificate", "acm:DescribeCertificate", "acm:DeleteCertificate",
           "acm:AddTagsToCertificate", "acm:ListTagsForCertificate"
         ]
@@ -336,13 +176,6 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "Route53CleanupOnly"
         Effect = "Allow"
-        # KEPT TEMPORARILY: only needed to let this one apply DESTROY the
-        # old DNS-validation CNAME + subdomain A record now removed from
-        # config. Zone ID hardcoded (was Z0759147DP4WTN9YNUWC via
-        # data.aws_route53_zone.main, which no longer exists once route53.tf
-        # is deleted). Safe to delete this whole statement, plus
-        # Route53ChangeStatus below, once that cleanup apply succeeds —
-        # nothing in this project touches Route53 going forward.
         Action = [
           "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets",
           "route53:ListTagsForResource"
@@ -353,14 +186,11 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Sid      = "Route53ChangeStatus"
         Effect   = "Allow"
         Action   = ["route53:GetChange"]
-        Resource = "arn:aws:route53:::change/*" # AWS requires this wildcard — change IDs are generated per-call.
+        Resource = "arn:aws:route53:::change/*" 
       },
       {
         Sid    = "ReadOnlyMetadataExceptions"
         Effect = "Allow"
-        # route53:ListHostedZones removed — that was only for the by-name
-        # zone data source lookup, which no longer exists once route53.tf
-        # is deleted.
         Action   = ["application-autoscaling:Describe*", "servicediscovery:List*", "servicediscovery:Get*"]
         Resource = "*"
       }
@@ -383,18 +213,6 @@ module "iam_iam-github-oidc-role" {
     "${local.repo_subject_prefix}:ref:refs/heads/main",
     "${local.repo_subject_prefix}:pull_request"
   ]
-  #   subjects = [
-  #     "repo:susu10-10@${var.owner_id}/pulse-ecs-repo@${var.repo_id}:ref:refs/heads/main",
-  #   ]
-  # # The Expanded Zero-Trust Boundary
-  # subjects = [
-  #   # Allow the main branch
-  #   "repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:ref:refs/heads/main",
-  #   # Allow any feature branch
-  #   "repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:ref:refs/heads/*",
-  #   # Allow Pull Request triggers
-  #   "repo:susu10-10@<OWNER_ID>/online-boutique-aaws-pf@<REPO_ID>:pull_request"
-  # ]
 
   policies = {
     DeployPolicy = aws_iam_policy.github_deploy_policy.arn
