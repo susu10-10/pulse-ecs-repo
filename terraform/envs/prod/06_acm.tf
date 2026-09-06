@@ -17,7 +17,6 @@
 #   tags = var.tags
 # }
 
-
 # Self-signed certificate, imported directly into ACM. No Route53, no
 # domain-ownership validation — trades away browser trust for removing the
 # cross-project Route53 dependency entirely. Real production deployment
@@ -33,7 +32,7 @@ resource "tls_self_signed_cert" "alb" {
   private_key_pem = tls_private_key.alb.private_key_pem
 
   subject {
-    common_name  = "${var.project_name}-alb"
+    common_name  = "${var.project_name}-alb.local"
     organization = "Pulse ECS Assessment"
   }
 

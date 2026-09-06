@@ -203,7 +203,8 @@ resource "aws_iam_policy" "github_deploy_policy" {
         # explicitly instead of "ecs:*" to keep the surface as small as possible.
         Action = [
           "ecs:CreateCluster", "ecs:DeleteCluster", "ecs:DescribeClusters", "ecs:TagResource",
-          "ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:DeregisterTaskDefinition"
+          "ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:DeregisterTaskDefinition",
+          "ecs:PutClusterCapacityProviders "
         ]
         Resource = "*"
       },
