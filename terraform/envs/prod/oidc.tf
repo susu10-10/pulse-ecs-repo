@@ -185,7 +185,9 @@ resource "aws_iam_policy" "deploy_extra" {
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-github-deploy-role",
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-github-deploy-core",
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-github-deploy-extra",
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.project_name}-github-deploy-policy"
+
         ]
       },
       {
