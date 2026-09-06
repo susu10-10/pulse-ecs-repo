@@ -42,7 +42,7 @@ jobs:
           terraform_version: "1.15.6" 
 
       - name: Terraform init
-        run: terraform chdir=${{ env.TF_ENV_DIR }} init
+        run: terraform -chdir=${{ env.TF_ENV_DIR }} init
         env:
           TF_VAR_repo_id: ${{ secrets.REPO_ID }}
           TF_VAR_owner_id: ${{ secrets.OWNER_ID }}
