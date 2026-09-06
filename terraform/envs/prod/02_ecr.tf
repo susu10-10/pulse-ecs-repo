@@ -2,34 +2,17 @@ module "ecr" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "~> 3.0.0"
 
-  # Create repos like online-boutique/frontend
   repository_name = "${var.project_name}/pulseservice"
 
-  # Gh Actions to push updated SHA tags over the existing ref if needed
   repository_image_tag_mutability = "MUTABLE"
 
-  #ecr vuln scanner
   repository_image_scan_on_push = true
   repository_force_delete       = true
-
 
   repository_lifecycle_policy = jsonencode({
     rules = [
       {
-        rulePriority = 1,
-        description  = "Keep last 3 images",
-        selection = {
-          tagStatus     = "tagged",
-          tagPrefixList = ["sha-"]
-          countType     = "imageCountMoreThan",
-          countNumber   = 3
-        },
-        action = {
-          type = "expire"
-        }
-      },
-      {
-        rulePriority = 2
+        rulePriority = 1
         description  = "Expire untagged images after 2 days"
         selection = {
           tagStatus   = "untagged"
@@ -43,5 +26,4 @@ module "ecr" {
   })
 
   tags = var.tags
-
 }

@@ -160,7 +160,6 @@ resource "aws_iam_policy" "github_deploy_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-
       {
         Sid      = "EcrAuth"
         Effect   = "Allow"
@@ -178,6 +177,19 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Resource = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/${var.project_name}*"
       },
       {
+        Sid    = "EcrRepoManagement"
+        Effect = "Allow"
+        Action = [
+          "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories",
+          "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy",
+          "ecr:PutImageScanningConfiguration",
+          "ecr:GetRepositoryPolicy", "ecr:SetRepositoryPolicy", "ecr:DeleteRepositoryPolicy",
+          "ecr:PutImageTagMutability",
+          "ecr:TagResource", "ecr:UntagResource", "ecr:ListTagsForResource"
+        ]
+        Resource = "arn:aws:ecr:${var.aws_region}:${data.aws_caller_identity.current.account_id}:repository/${var.project_name}*"
+      },
+      {
         Sid      = "EcsServiceDeploy"
         Effect   = "Allow"
         Action   = ["ecs:UpdateService", "ecs:DescribeServices", "ecs:CreateService", "ecs:DeleteService", "ecs:TagResource"]
@@ -186,7 +198,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "EcsClusterAndTaskDef"
         Effect = "Allow"
-        # ECS cluster/task-def APIs do not support resource-level scoping
+        # ECS cluster/task-def APIs do not support resource-level scoping —
         # documented AWS limitation, not an oversight. Actions enumerated
         # explicitly instead of "ecs:*" to keep the surface as small as possible.
         Action = [
@@ -211,7 +223,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
         # IAM conditions — scoped by enumerating exact actions used instead of
         # "ec2:*" / "elasticloadbalancing:*".
         Action = [
-          "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:DescribeVpcs", "ec2:ModifyVpcAttribute",
+          "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:DescribeVpcs", "ec2:ModifyVpcAttribute", "ec2:DescribeVpcAttribute",
           "ec2:CreateSubnet", "ec2:DeleteSubnet", "ec2:DescribeSubnets",
           "ec2:CreateInternetGateway", "ec2:DeleteInternetGateway",
           "ec2:AttachInternetGateway", "ec2:DetachInternetGateway", "ec2:DescribeInternetGateways",
@@ -223,11 +235,13 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "ec2:AuthorizeSecurityGroupIngress", "ec2:AuthorizeSecurityGroupEgress",
           "ec2:RevokeSecurityGroupIngress", "ec2:RevokeSecurityGroupEgress",
           "ec2:DescribeSecurityGroups", "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeSecurityGroupRules", "ec2:DescribeAddressesAttribute",
           "ec2:CreateTags", "ec2:DescribeTags",
           "elasticloadbalancing:CreateLoadBalancer", "elasticloadbalancing:DeleteLoadBalancer",
-          "elasticloadbalancing:DescribeLoadBalancers",
+          "elasticloadbalancing:DescribeLoadBalancers", "elasticloadbalancing:DescribeLoadBalancerAttributes",
           "elasticloadbalancing:CreateTargetGroup", "elasticloadbalancing:DeleteTargetGroup",
-          "elasticloadbalancing:DescribeTargetGroups", "elasticloadbalancing:DescribeTargetHealth",
+          "elasticloadbalancing:DescribeTargetGroups", "elasticloadbalancing:DescribeTargetGroupAttributes",
+          "elasticloadbalancing:DescribeTargetHealth",
           "elasticloadbalancing:CreateListener", "elasticloadbalancing:DeleteListener",
           "elasticloadbalancing:DescribeListeners", "elasticloadbalancing:ModifyListener",
           "elasticloadbalancing:ModifyLoadBalancerAttributes", "elasticloadbalancing:ModifyTargetGroupAttributes",
@@ -239,10 +253,21 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Sid    = "Logs"
         Effect = "Allow"
         Action = [
-          "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:DescribeLogGroups",
+          "logs:CreateLogGroup", "logs:DeleteLogGroup",
           "logs:PutRetentionPolicy", "logs:ListTagsLogGroup", "logs:TagResource"
         ]
-        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/ecs/${var.project_name}*"
+        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/*"
+      },
+      {
+        Sid    = "LogsDescribeUnscoped"
+        Effect = "Allow"
+        # FIXED: logs:DescribeLogGroups is a search/list action — like
+        # route53:ListHostedZones, it structurally cannot be scoped to a
+        # specific log-group ARN. AWS requires Resource "*" for this one
+        # specific action, even though CreateLogGroup/DeleteLogGroup/etc.
+        # (above) support scoping just fine.
+        Action   = ["logs:DescribeLogGroups"]
+        Resource = "*"
       },
       {
         Sid    = "IamForProjectRolesOnly"
@@ -309,7 +334,8 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Sid    = "Route53ForAppSubdomainOnly"
         Effect = "Allow"
         Action = [
-          "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets"
+          "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets",
+          "route53:ListTagsForResource"
         ]
         # Scoped to the ONE existing hosted zone this project adds a
         # subdomain record into — never the zone-creation/deletion actions,
@@ -329,7 +355,11 @@ resource "aws_iam_policy" "github_deploy_policy" {
         # A handful of provider-side read calls with no resource-level scoping
         # option at all — kept explicit and separate from the write-capable
         # statements above so the exception is auditable at a glance.
-        Action   = ["application-autoscaling:Describe*", "servicediscovery:List*", "servicediscovery:Get*"]
+        # route53:ListHostedZones added: the data "aws_route53_zone" lookup
+        # by name has to search all zones to find the match — AWS requires
+        # Resource "*" for this specific action, same limitation category as
+        # the others already listed here.
+        Action   = ["application-autoscaling:Describe*", "servicediscovery:List*", "servicediscovery:Get*", "route53:ListHostedZones"]
         Resource = "*"
       }
     ]
