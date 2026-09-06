@@ -39,7 +39,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           # Use your exact IAM Role ARN here
-          role-to-assume: arn:aws:iam::767397659229:role/online-boutique-github-deploy-role
+          role-to-assume: arn:aws:iam::767397659229:role/pulse-ecs-github-deploy-role
           aws-region: us-east-1
       - uses: hashicorp/setup-terraform@v4
         with:
