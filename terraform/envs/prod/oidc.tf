@@ -181,7 +181,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Effect = "Allow"
         Action = [
           "ecr:CreateRepository", "ecr:DeleteRepository", "ecr:DescribeRepositories",
-          "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy",
+          "ecr:PutLifecyclePolicy", "ecr:GetLifecyclePolicy", "ecr:DeleteLifecyclePolicy",
           "ecr:PutImageScanningConfiguration",
           "ecr:GetRepositoryPolicy", "ecr:SetRepositoryPolicy", "ecr:DeleteRepositoryPolicy",
           "ecr:PutImageTagMutability",
@@ -202,7 +202,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
         # documented AWS limitation, not an oversight. Actions enumerated
         # explicitly instead of "ecs:*" to keep the surface as small as possible.
         Action = [
-          "ecs:CreateCluster", "ecs:DeleteCluster", "ecs:DescribeClusters",
+          "ecs:CreateCluster", "ecs:DeleteCluster", "ecs:DescribeClusters", "ecs:TagResource",
           "ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:DeregisterTaskDefinition"
         ]
         Resource = "*"
@@ -236,7 +236,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "ec2:RevokeSecurityGroupIngress", "ec2:RevokeSecurityGroupEgress",
           "ec2:DescribeSecurityGroups", "ec2:DescribeAvailabilityZones",
           "ec2:DescribeSecurityGroupRules", "ec2:DescribeAddressesAttribute",
-          "ec2:DescribeNetworkAcls",
+          "ec2:DescribeNetworkAcls", "ec2:CreateNetworkAclEntry", "ec2:DeleteNetworkAclEntry", "ec2:ReplaceNetworkAclEntry",
           "ec2:CreateTags", "ec2:DescribeTags",
           "elasticloadbalancing:CreateLoadBalancer", "elasticloadbalancing:DeleteLoadBalancer",
           "elasticloadbalancing:DescribeLoadBalancers", "elasticloadbalancing:DescribeLoadBalancerAttributes",
@@ -244,7 +244,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "elasticloadbalancing:DescribeTargetGroups", "elasticloadbalancing:DescribeTargetGroupAttributes",
           "elasticloadbalancing:DescribeTargetHealth",
           "elasticloadbalancing:CreateListener", "elasticloadbalancing:DeleteListener",
-          "elasticloadbalancing:DescribeListeners", "elasticloadbalancing:ModifyListener",
+          "elasticloadbalancing:DescribeListeners", "elasticloadbalancing:DescribeListenerAttributes", "elasticloadbalancing:ModifyListener",
           "elasticloadbalancing:ModifyLoadBalancerAttributes", "elasticloadbalancing:ModifyTargetGroupAttributes",
           "elasticloadbalancing:AddTags", "elasticloadbalancing:DescribeTags"
         ]
@@ -324,26 +324,29 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Sid    = "AcmManage"
         Effect = "Allow"
         Action = [
-          "acm:RequestCertificate", "acm:DescribeCertificate", "acm:DeleteCertificate",
+          # Swapped RequestCertificate -> ImportCertificate: no longer
+          # requesting a DNS-validated cert, importing a self-signed one
+          # instead (see 06_acm.tf) — removes the Route53 dependency entirely.
+          "acm:ImportCertificate", "acm:DescribeCertificate", "acm:DeleteCertificate",
           "acm:AddTagsToCertificate", "acm:ListTagsForCertificate"
         ]
-        # ACM certificate ARNs include a generated ID that doesn't exist
-        # before RequestCertificate runs — wildcard-suffixed to this
-        # account/region rather than "*" globally.
         Resource = "arn:aws:acm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:certificate/*"
       },
       {
-        Sid    = "Route53ForAppSubdomainOnly"
+        Sid    = "Route53CleanupOnly"
         Effect = "Allow"
+        # KEPT TEMPORARILY: only needed to let this one apply DESTROY the
+        # old DNS-validation CNAME + subdomain A record now removed from
+        # config. Zone ID hardcoded (was Z0759147DP4WTN9YNUWC via
+        # data.aws_route53_zone.main, which no longer exists once route53.tf
+        # is deleted). Safe to delete this whole statement, plus
+        # Route53ChangeStatus below, once that cleanup apply succeeds —
+        # nothing in this project touches Route53 going forward.
         Action = [
           "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets",
           "route53:ListTagsForResource"
         ]
-        # Scoped to the ONE existing hosted zone this project adds a
-        # subdomain record into — never the zone-creation/deletion actions,
-        # and never a wildcard across all zones in the account. This project
-        # doesn't own the zone; the AAWS project's Terraform state does.
-        Resource = "arn:aws:route53:::hostedzone/${data.aws_route53_zone.main.zone_id}"
+        Resource = "arn:aws:route53:::hostedzone/Z0759147DP4WTN9YNUWC"
       },
       {
         Sid      = "Route53ChangeStatus"
@@ -354,14 +357,10 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "ReadOnlyMetadataExceptions"
         Effect = "Allow"
-        # A handful of provider-side read calls with no resource-level scoping
-        # option at all — kept explicit and separate from the write-capable
-        # statements above so the exception is auditable at a glance.
-        # route53:ListHostedZones added: the data "aws_route53_zone" lookup
-        # by name has to search all zones to find the match — AWS requires
-        # Resource "*" for this specific action, same limitation category as
-        # the others already listed here.
-        Action   = ["application-autoscaling:Describe*", "servicediscovery:List*", "servicediscovery:Get*", "route53:ListHostedZones"]
+        # route53:ListHostedZones removed — that was only for the by-name
+        # zone data source lookup, which no longer exists once route53.tf
+        # is deleted.
+        Action   = ["application-autoscaling:Describe*", "servicediscovery:List*", "servicediscovery:Get*"]
         Resource = "*"
       }
     ]

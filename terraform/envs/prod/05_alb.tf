@@ -54,7 +54,7 @@ module "alb" {
     https = {
       port            = 443
       protocol        = "HTTPS"
-      certificate_arn = module.acm.acm_certificate_arn
+      certificate_arn = aws_acm_certificate.alb.arn # self-signed, not module.acm
 
       forward = {
         target_group_key = "pulsesvc_tg"
