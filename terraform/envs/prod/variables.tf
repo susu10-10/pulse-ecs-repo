@@ -60,3 +60,17 @@ variable "owner" {
   type        = string
   default     = "susu10-10"
 }
+
+
+variable "app_subdomain" {
+  description = "Subdomain this project's ALB is exposed on, e.g. \"pulse\" -> pulse.suworks.me. Never point this at the bare domain_name — that's the live AAWS project's apex."
+  type        = string
+  default     = "pulse"
+}
+
+
+variable "image_tag" {
+  description = "ECR image tag to deploy. The CD workflow passes this as -var=\"image_tag=sha-<commit>\" on every apply; never left at a floating \"latest\" for a real deploy."
+  type        = string
+  default     = "latest"
+}

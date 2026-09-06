@@ -160,6 +160,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+
       {
         Sid      = "EcrAuth"
         Effect   = "Allow"
@@ -185,7 +186,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
       {
         Sid    = "EcsClusterAndTaskDef"
         Effect = "Allow"
-        # ECS cluster/task-def APIs do not support resource-level scoping —
+        # ECS cluster/task-def APIs do not support resource-level scoping
         # documented AWS limitation, not an oversight. Actions enumerated
         # explicitly instead of "ecs:*" to keep the surface as small as possible.
         Action = [
@@ -291,6 +292,36 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "arn:aws:s3:::pulse-ecs-tfstate-767397659229",
           "arn:aws:s3:::pulse-ecs-tfstate-767397659229/*"
         ]
+      },
+      {
+        Sid    = "AcmManage"
+        Effect = "Allow"
+        Action = [
+          "acm:RequestCertificate", "acm:DescribeCertificate", "acm:DeleteCertificate",
+          "acm:AddTagsToCertificate", "acm:ListTagsForCertificate"
+        ]
+        # ACM certificate ARNs include a generated ID that doesn't exist
+        # before RequestCertificate runs — wildcard-suffixed to this
+        # account/region rather than "*" globally.
+        Resource = "arn:aws:acm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:certificate/*"
+      },
+      {
+        Sid    = "Route53ForAppSubdomainOnly"
+        Effect = "Allow"
+        Action = [
+          "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ChangeResourceRecordSets"
+        ]
+        # Scoped to the ONE existing hosted zone this project adds a
+        # subdomain record into — never the zone-creation/deletion actions,
+        # and never a wildcard across all zones in the account. This project
+        # doesn't own the zone; the AAWS project's Terraform state does.
+        Resource = "arn:aws:route53:::hostedzone/${data.aws_route53_zone.main.zone_id}"
+      },
+      {
+        Sid      = "Route53ChangeStatus"
+        Effect   = "Allow"
+        Action   = ["route53:GetChange"]
+        Resource = "arn:aws:route53:::change/*" # AWS requires this wildcard — change IDs are generated per-call.
       },
       {
         Sid    = "ReadOnlyMetadataExceptions"
