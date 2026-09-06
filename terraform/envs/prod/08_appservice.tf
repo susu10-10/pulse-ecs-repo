@@ -23,6 +23,18 @@ module "pulsesvc_service" {
   autoscaling_min_capacity = 0
   autoscaling_max_capacity = 0
 
+  # deployment_circuit_breaker = {
+  #   enable   = true
+  #   rollback = true
+  # }
+
+  # container_definition_defaults = {
+  #   enable_cloudwatch_logging              = true
+  #   create_cloudwatch_log_group            = true
+  #   cloudwatch_log_group_name              = "/aws/ecs/${var.project_name}/pulseservice"
+  #   cloudwatch_log_group_retention_in_days = 30
+  # }
+
   # Container definition(s)
   container_definitions = {
 
