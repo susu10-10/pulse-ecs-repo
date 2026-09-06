@@ -52,7 +52,7 @@ module "pulsesvc_service" {
   load_balancer = {
     service = {
       target_group_arn = module.alb.target_groups["pulsesvc_tg"].arn
-      container_name   = "pulseservice"
+      container_name   = "pulsesvc"
       container_port   = 8080
     }
   }
