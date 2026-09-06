@@ -377,6 +377,7 @@ The three most important improvements before considering this environment produc
 
 - `terraform plan` / `terraform apply` output: captured throughout development, available on request or in commit history
 - Successful `docker build`: confirmed locally and in `validate.yml`'s CI run
+- `terraform destroy` output: captured during the cleanup process, available on request or in commit history
 - CI workflow results: visible in the repository's Actions tab `validate.yml`, `ci-pulse-ecr.yml`, and `cd-pulse-service.yml` all have green runs
 - Live health check, captured at time of writing:
 
