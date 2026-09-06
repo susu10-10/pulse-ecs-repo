@@ -78,5 +78,5 @@ variable "image_tag" {
 variable "alert_email" {
   description = "Email address to send alerts to"
   type        = string
-  default     = "successchukwu20@gmail.com"
+  default     = "rabiusa69@gmail.com"
 }
