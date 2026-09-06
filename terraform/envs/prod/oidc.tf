@@ -236,6 +236,7 @@ resource "aws_iam_policy" "github_deploy_policy" {
           "ec2:RevokeSecurityGroupIngress", "ec2:RevokeSecurityGroupEgress",
           "ec2:DescribeSecurityGroups", "ec2:DescribeAvailabilityZones",
           "ec2:DescribeSecurityGroupRules", "ec2:DescribeAddressesAttribute",
+          "ec2:DescribeNetworkAcls",
           "ec2:CreateTags", "ec2:DescribeTags",
           "elasticloadbalancing:CreateLoadBalancer", "elasticloadbalancing:DeleteLoadBalancer",
           "elasticloadbalancing:DescribeLoadBalancers", "elasticloadbalancing:DescribeLoadBalancerAttributes",
@@ -254,7 +255,8 @@ resource "aws_iam_policy" "github_deploy_policy" {
         Effect = "Allow"
         Action = [
           "logs:CreateLogGroup", "logs:DeleteLogGroup",
-          "logs:PutRetentionPolicy", "logs:ListTagsLogGroup", "logs:TagResource"
+          "logs:PutRetentionPolicy", "logs:ListTagsLogGroup", "logs:TagResource",
+          "logs:ListTagsForResource"
         ]
         Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/*"
       },
