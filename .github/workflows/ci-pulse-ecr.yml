@@ -42,7 +42,9 @@ jobs:
         run: |
           echo "Building $SERVICE..."
 
-          IMAGE_URI="$ECR_REGISTRY/pulse-ecs/$SERVICE:${{ env.SHA_TAG }}"
+          #IMAGE_URI="$ECR_REGISTRY/pulse-ecs/$SERVICE:${{ env.SHA_TAG }}"
+          IMAGE_URI="$ECR_REGISTRY/pulse-ecs/$SERVICE:latest"
+
 
           docker build -t $IMAGE_URI ./app
           

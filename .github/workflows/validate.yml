@@ -15,7 +15,7 @@ permissions:
 
 env:
   AWS_REGION: us-east-1
-  TF_ENV_DIR: terraform/envs/prod   # switch per-PR or matrix this if you stand up envs/dev too
+  TF_ENV_DIR: terraform/envs/prod   
 
 jobs:
   terraform-checks:

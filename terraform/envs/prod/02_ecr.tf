@@ -6,7 +6,7 @@ module "ecr" {
   repository_name = "${var.project_name}/pulseservice"
 
   # Gh Actions to push updated SHA tags over the existing ref if needed
-  repository_image_tag_mutability = "IMMUTABLE"
+  repository_image_tag_mutability = "MUTABLE"
 
   #ecr vuln scanner
   repository_image_scan_on_push = true
